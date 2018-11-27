@@ -194,6 +194,7 @@ angular.module('pmpApp').controller('HistoricalController', ['$http',
                     ',') + '/historical/' + p + '/' + x + '/' +
                 s + '/' + w);
             promise.then(function (data) {
+                $scope.allRequests = data.data.results.all_requests
                 if (!data.data.results.status) {
                     $scope.showPopUp(PageDetailsProvider.messages
                         .W2.type, PageDetailsProvider.messages

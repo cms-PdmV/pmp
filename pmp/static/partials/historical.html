@@ -28,5 +28,22 @@
         </div>
       </div>
     </div>
+    <p style="margin-top: 20px">List of requests in plot:</p>
+    <div ng-repeat="req in allRequests" class="zebra-lines small-padding">
+      <div class="row">
+        <div class="col-sm-12">
+          <small>
+            <a ng-if="req.prepid.indexOf('ReReco') == -1" ng-href="/mcm/requests?prepid={{req.prepid}}" target="_blank">{{req.prepid}}</a>
+            <a ng-if="req.prepid.indexOf('ReReco') != -1" ng-href="https://dmytro.web.cern.ch/dmytro/cmsprodmon/workflows.php?prep_id={{req.prepid}}" target="_blank">{{req.prepid}}</a>
+          </small>
+          <span ng-hide="req.expected == 0">
+            Expected: <strong>{{req.expected}}</strong> | Produced: <strong>{{req.events_in_das/req.expected*100 | number : 2}}%</strong> <small>({{req.events_in_das}})</small> | Done: <strong>{{req.done_events/req.expected*100 | number : 2}}%</strong> <small>({{req.done_events}})</small>
+          </span>
+          <span ng-hide="req.expected != 0">
+            No expected events
+          </span>
+        </div>
+      </div>
+    </div>
   </div>
 </div>

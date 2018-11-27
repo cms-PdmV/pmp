@@ -322,6 +322,7 @@ class HistoricalAPI(esadapter.InitConnection):
         filters['status'] = dict()
         filters['pwg'] = dict()
         incorrect = True
+        all_requests = []
         for one in query:
 
             # Keep track of the prepids we've seen, so that we only add submission probes once
@@ -447,13 +448,15 @@ class HistoricalAPI(esadapter.InitConnection):
                     response['data'].append({'e': 0, 'd': 0, 'x': details['expected'],
                         't': details['submitted_time']})
 
+                    all_requests.append({'prepid': details['prepid'], 'expected': details['expected']})
+
                     seen_prepids.append(details['prepid'])
 
                 response_list.append(response)
             error = ''
             if incorrect:
                 error = 'Please load valid campaign, request or workflow name'
-        return response_list, filters['pwg'], filters['status'], False, error
+        return response_list, filters['pwg'], filters['status'], False, error, all_requests
 
     def process_taskchain(self, document):
         """Use when input is workflow and a taskchain"""
@@ -532,7 +535,7 @@ class HistoricalAPI(esadapter.InitConnection):
         filters_status_csv = api_utils.parse_csv(filters['status'])
         filters_pwg_csv = api_utils.parse_csv(filters['pwg'])
         priority = api_utils.parse_priority_csv(priority.split(','))
-        response, pwg, status, taskchain, error = \
+        response, pwg, status, taskchain, error, all_requests = \
             self.prepare_response(query.split(','),
                                   priority,
                                   filters_status_csv,
@@ -543,20 +546,32 @@ class HistoricalAPI(esadapter.InitConnection):
                    'pwg': dict(),
                    'status': dict(),
                    'taskchain': True,
-                   'error': ''}
+                   'error': '',
+                   'all_requests': []}
         else:
             # get accumulated requests
             accumulated = self.accumulate_requests(response)
             # Adjust 'Expected' count to current done count if request is prematurely done
             self.adjust_for_force_complete(accumulated)
+            for req in all_requests:
+                req['expected'] = accumulated[req['prepid']]['data'][-1]['x']
+                req['events_in_das'] = accumulated[req['prepid']]['data'][-1]['e']
+                req['done_events'] = accumulated[req['prepid']]['data'][-1]['d']
+
+            # all_requests = [req for req in all_requests if req['expected'] != req['events_in_das'] or req['events_in_das'] != req['done_events']]
             # add data points
             data = self.add_data_points(accumulated,
                                         self.sort_timestamps(accumulated,
                                                              probe))
+
             # add last point which is now()
             data = self.append_data_point(data)
-            res = {'data': data, 'pwg': pwg, 'status': status,
-                   'taskchain': False, 'error': error}
+            res = {'data': data,
+                   'pwg': pwg,
+                   'status': status,
+                   'taskchain': False,
+                   'error': error,
+                   'all_requests': all_requests}
 
         return json.dumps({"results": res})
 
